@@ -10,14 +10,6 @@ import daiquiri
 logger = daiquiri.getLogger(__name__)
 
 
-def create_random():
-    game = np.zeros((9, 9), int)
-    for i in range(9):
-        game[i] = range(1, 10)
-        np.random.shuffle(game[i])
-    return game
-
-
 def is_valid(board):
     for line in board:
         unique, count = np.unique(line, return_counts=True)
@@ -39,15 +31,51 @@ def get_choices(board, pos):
     choices = np.arange(1, 10)
     i, j = pos[0] // 3, pos[1] // 3
     submat = board[3 * i:3 * (i + 1), 3 * j:3 * (j + 1)]
-    not_available = reduce(np.union1d, [board[pos[0]], board[:, pos[1]], submat.flat])
+    not_available = reduce(np.union1d,
+                           [board[pos[0]], board[:, pos[1]], submat.flat])
     return np.setdiff1d(choices, not_available)
 
 
-def is_uniquely_solvable(initial_board, pos):
-    board = np.copy(initial_board)
-    pos = 0, 0
+def is_filled(board):
+    return (board != 0).all()
+
+
+def remove_random_element(board, n):
+    for i in range(n):
+        logger.debug("Remove elem %d / %d", i + 1, n)
+        while True:
+            pos = tuple(np.random.randint(9, size=2))
+            elem = board[pos]
+            logger.debug(f"Remove %s at pos %s", elem, pos)
+            if elem:
+                board[pos] = 0
+                if is_uniquely_solvable(np.copy(board)):
+                    break
+                board[pos] = elem
+
+
+def is_uniquely_solvable(board):
+    if is_filled(board):
+        return True
+
+    pos = (0, 0)
     while board[pos]:
         pos = next_pos(pos)
+
+    choices = get_choices(board, pos)
+    logger.debug("Choose between %s at pos %s", choices, pos)
+
+    if choices.size == 0:
+        return False
+
+    solvables = []
+    for choice in choices:
+        board[pos] = choice
+        solvables.append(is_uniquely_solvable(board))
+    if sum(solvables) == 1:
+        return True
+    return False
+
 
 
 def create_by_shuffling():
@@ -66,27 +94,6 @@ def create_by_shuffling():
         logger.info(board1)
 
 
-def create_advanced():
-    board1 = np.zeros((9, 9), int)
-    board2 = board1.reshape((3, 3, 3, 3))
-
-    logger.info("Create line %d", 0)
-    random_line = np.arange(1, 10)
-    np.random.shuffle(random_line)
-    board1[0] = random_line
-    for line in range(1, 9):
-        for num in range(1, 10):
-            for col in range(9):
-                if not board1[line, col]:
-                    board1[line, col] = num
-                    if is_valid(board1):
-                        break
-                    else:
-                        board1[line, col] = 0
-
-        logger.info(board1)
-
-
 def next_pos(pos):
     line, col = pos
     if col + 1 > 8:
@@ -97,7 +104,7 @@ def next_pos(pos):
 def backtrack(board, pos):
     choices = list(range(1, 10))
 
-    logger.info("\n%s", board)
+    logger.debug("\n%s", board)
     logger.debug("At pos %s", pos)
     logger.debug("Choices are %s", choices)
 
@@ -137,15 +144,29 @@ def create_by_backtracking():
     return board
 
 
-def main(level="info"):
+def draw_sudoku(board):
+    for i in range(9):
+        for j in range(9):
+            if board[i, j]:
+                print(board[i, j], end=" ")
+            else:
+                print(" ", end=" ")
+            if j in (2, 5):
+                print("|", end=" ")
+        print("\n", end="")
+        if i in (2, 5):
+            print(20 * "-")
+
+
+def main(n, level="info"):
     daiquiri.setup(level=getattr(daiquiri.logging, level.upper()))
-    board = create_by_backtracking()
-    print(board)
-    print("remove", board[2, 4])
-    print("remove", board[2, 5])
-    board[2, 4] = 0
-    board[2, 5] = 0
-    print(get_choices(board, (2, 4)))
+    solution_board = create_by_backtracking()
+    board = np.copy(solution_board)
+    remove_random_element(board, n)
+    draw_sudoku(board)
+    print("Lösung:")
+    draw_sudoku(solution_board)
+
 
 
 if __name__ == "__main__":
