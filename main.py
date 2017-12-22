@@ -1,3 +1,4 @@
+from functools import reduce
 from itertools import product
 from collections import defaultdict
 
@@ -18,7 +19,6 @@ def create_random():
 
 
 def is_valid(board):
-    b2 = board.reshape((3, 3, 3, 3))
     for line in board:
         unique, count = np.unique(line, return_counts=True)
         if (count[unique != 0] > 1).any():
@@ -33,6 +33,21 @@ def is_valid(board):
         if (count[unique != 0] > 1).any():
             return False
     return True
+
+
+def get_choices(board, pos):
+    choices = np.arange(1, 10)
+    i, j = pos[0] // 3, pos[1] // 3
+    submat = board[3 * i:3 * (i + 1), 3 * j:3 * (j + 1)]
+    not_available = reduce(np.union1d, [board[pos[0]], board[:, pos[1]], submat.flat])
+    return np.setdiff1d(choices, not_available)
+
+
+def is_uniquely_solvable(initial_board, pos):
+    board = np.copy(initial_board)
+    pos = 0, 0
+    while board[pos]:
+        pos = next_pos(pos)
 
 
 def create_by_shuffling():
@@ -79,9 +94,7 @@ def next_pos(pos):
     return line, col + 1
 
 
-def backtr(board, pos):
-    if pos[0] == 9:
-        return False
+def backtrack(board, pos):
     choices = list(range(1, 10))
 
     logger.info("\n%s", board)
@@ -99,31 +112,41 @@ def backtr(board, pos):
 
         if not is_valid(board):
             logger.debug("Invalid position")
+            logger.debug("\n%s", board)
             board[pos] = 0
             continue
 
-        if not backtr(board, next_pos(pos)):
+        if pos == (8, 8):
+            return True
+
+        if not backtrack(board, next_pos(pos)):
             board[pos] = 0
             continue
 
+        return True
 
-def backtrack():
-    board1 = np.zeros((9, 9), int)
+
+def create_by_backtracking():
+    board = np.zeros((9, 9), int)
     attempted_numbers = defaultdict(set)
     random_line = np.arange(1, 10)
     np.random.shuffle(random_line)
-    board1[0] = random_line
+    board[0] = random_line
     pos = (1, 0)
-    backtr(board1, pos)
-    print(board1)
-    print(is_valid(board1))
+    backtrack(board, pos)
+    return board
 
 
 def main(level="info"):
     daiquiri.setup(level=getattr(daiquiri.logging, level.upper()))
-    backtrack()
+    board = create_by_backtracking()
+    print(board)
+    print("remove", board[2, 4])
+    print("remove", board[2, 5])
+    board[2, 4] = 0
+    board[2, 5] = 0
+    print(get_choices(board, (2, 4)))
 
 
 if __name__ == "__main__":
     fire.Fire()
-    main()
