@@ -27,8 +27,9 @@ def is_valid(board):
         unique, count = np.unique(column, return_counts=True)
         if (count[unique != 0] > 1).any():
             return False
-    for i, j in product(range(b2.shape[0]), range(b2.shape[1])):
-        unique, count = np.unique(b2[i, j], return_counts=True)
+    for i, j in product(range(3), range(3)):
+        unique, count = np.unique(board[i * 3: (i + 1) * 3, j * 3: (j + 1) * 3],
+                                  return_counts=True)
         if (count[unique != 0] > 1).any():
             return False
     return True
@@ -78,11 +79,12 @@ def next_pos(pos):
     return line, col + 1
 
 
-def backtr(board, attempts, pos):
-    digits = set(range(1, 10))
-    choices = list(digits - attempts[pos])
+def backtr(board, pos):
+    if pos[0] == 9:
+        return False
+    choices = list(range(1, 10))
 
-    logger.debug(board)
+    logger.info("\n%s", board)
     logger.debug("At pos %s", pos)
     logger.debug("Choices are %s", choices)
 
@@ -93,7 +95,6 @@ def backtr(board, attempts, pos):
 
         choice = np.random.choice(choices)
         board[pos] = choice
-        attempts[pos].add(choice)
         choices.remove(choice)
 
         if not is_valid(board):
@@ -101,7 +102,7 @@ def backtr(board, attempts, pos):
             board[pos] = 0
             continue
 
-        if not backtr(board, attempts, next_pos(pos)):
+        if not backtr(board, next_pos(pos)):
             board[pos] = 0
             continue
 
@@ -113,11 +114,9 @@ def backtrack():
     np.random.shuffle(random_line)
     board1[0] = random_line
     pos = (1, 0)
-    attempts = defaultdict(set)
-    backtr(board1, attempts, pos)
+    backtr(board1, pos)
     print(board1)
     print(is_valid(board1))
-    print(attempts)
 
 
 def main(level="info"):
