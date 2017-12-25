@@ -1,11 +1,11 @@
+import random
+from collections import defaultdict
 from functools import reduce
 from itertools import product
-from collections import defaultdict
 
-import numpy as np
-import fire
 import daiquiri
-
+import fire
+import numpy as np
 
 logger = daiquiri.getLogger(__name__)
 
@@ -44,9 +44,9 @@ def remove_random_element(board, n):
     for i in range(n):
         logger.debug("Remove elem %d / %d", i + 1, n)
         while True:
-            pos = tuple(np.random.randint(9, size=2))
+            pos = random.choice(list(zip(*np.where(board != 0))))
             elem = board[pos]
-            logger.debug(f"Remove %s at pos %s", elem, pos)
+            logger.debug("Remove %s at pos %s", elem, pos)
             if elem:
                 board[pos] = 0
                 if is_uniquely_solvable(np.copy(board)):
@@ -75,7 +75,6 @@ def is_uniquely_solvable(board):
     if sum(solvables) == 1:
         return True
     return False
-
 
 
 def create_by_shuffling():
@@ -158,15 +157,31 @@ def draw_sudoku(board):
             print(20 * "-")
 
 
-def main(n, level="info"):
+def vectorize(board):
+    board.reshape((-1, 9, 9))
+    board_vec = np.zeros((*board.shape, 9), int)
+    for k in range(board_vec.shape[0]):
+        for i in range(board_vec.shape[1]):
+            for j in range(board_vec.shape[2]):
+                if board[k, i, j]:
+                    index = board[k, i, j] - 1
+                    board_vec[k, i, j, index] = 1
+    return board_vec
+
+
+def main(n, level="info", out="print"):
     daiquiri.setup(level=getattr(daiquiri.logging, level.upper()))
     solution_board = create_by_backtracking()
     board = np.copy(solution_board)
     remove_random_element(board, n)
-    draw_sudoku(board)
-    print("Lösung:")
-    draw_sudoku(solution_board)
-
+    if out == "print":
+        draw_sudoku(board)
+        print("Lösung:")
+        draw_sudoku(solution_board)
+    elif out == "vector":
+        return vectorize(board), vectorize(solution_board)
+    else:
+        raise NameError("Unknown value for out")
 
 
 if __name__ == "__main__":

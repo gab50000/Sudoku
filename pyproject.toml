@@ -1,0 +1,12 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "sudoku"
+author = "Gabriel Kabbe"
+author-email = "gabriel.kabbe@mail.de"
+home-page = "https://github.com/gab50000/Sudoku"
+requires = ["daiquiri", "fire", "numpy"]
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"]
+
